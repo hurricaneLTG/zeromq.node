@@ -106,14 +106,9 @@ describe('socket.messages', function(){
 
     console.log("yo 3");
     push.bind('tcp://127.0.0.1:12345', function () {
-
-      console.log("yo bound");
       push.send('string');
-      console.log("yo bound");
       push.send(15.99);
-      console.log("yo bound");
       push.send(new Buffer('buffer'));
-      console.log("yo bound");
       pull.connect('tcp://127.0.0.1:12345');
     });
   });

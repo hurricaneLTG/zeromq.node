@@ -874,9 +874,11 @@ namespace zmq {
 
       inline Local<Value> GetBuffer() {
         if (buf_.IsEmpty()) {
-          //printf("buf was empty?\n");
-          Local<Object> buf_obj = NanNewBufferHandle((char*)zmq_msg_data(*msgref_), zmq_msg_size(*msgref_), FreeCallback, msgref_);
-          //printf("b1\n");
+          //printf("buf was empty\n");
+          size_t size = zmq_msg_size(*msgref_);
+          //printf("size: %d\n", (int) size);
+          Local<Object> buf_obj = NanNewBufferHandle((char*)zmq_msg_data(*msgref_), size, FreeCallback, msgref_);
+          //printf("after handle\n");
           if (buf_obj.IsEmpty()) {
             return Local<Value>();
           }
@@ -928,6 +930,10 @@ namespace zmq {
   void Socket::CallbackIfReady() {
     NanScope();
     while(true){
+      if(state_ != STATE_READY){
+         //printf("bai1\n");
+         return;
+      }
       if(!(this->IsReady())){
         return;
       }
@@ -935,15 +941,27 @@ namespace zmq {
       Local<Array> message_buffers = NanNew<Array>(1);
       int messsage_part_count = 0;
       while(true){
+
         int flags = 0;
         IncomingMessage msg;
+
+        while (true) {
+          int rc;
         #if ZMQ_VERSION_MAJOR == 2
-          if (zmq_recv(socket_, msg, flags) < 0)
-            NanThrowError(ErrorMessage());
+          rc = zmq_recv(socket_, msg, flags);
         #else
-          if (zmq_recvmsg(socket_, msg, flags) < 0)
-            NanThrowError(ErrorMessage());
+          rc = zmq_recvmsg(socket_, msg, flags);
         #endif
+          if (rc < 0) {
+            if (zmq_errno()==EINTR) {
+              continue;
+            }
+            NanThrowError(ErrorMessage());
+            return;
+          } else {
+            break;
+          }
+        }
         message_buffers->Set(messsage_part_count,msg.GetBuffer());
         messsage_part_count++;
 
@@ -952,6 +970,7 @@ namespace zmq {
         size_t len = sizeof(int);
         if (zmq_getsockopt(socket_, ZMQ_RCVMORE, &more_to_receive, &len) < 0) {
           NanThrowError(ExceptionFromError());
+          return;
         }
         if(!more_to_receive){
           break;
@@ -1010,6 +1029,7 @@ namespace zmq {
   }
 #endif
 
+//Unused
   NAN_METHOD(Socket::Recv) {
     NanScope();
     int flags = 0;
