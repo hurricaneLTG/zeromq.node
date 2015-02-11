@@ -167,10 +167,10 @@ namespace zmq {
       bool IsReady();
       uv_poll_t *poll_handle_;
       static void UV_PollCallback(uv_poll_t* handle, int status, int events);
-  };
 
-  Persistent<String> callback_symbol;
-  Persistent<String> doRecv_callback_symbol;
+      static NAN_METHOD(SetOnReadyCallback);
+      Persistent<Function> on_ready_callback;
+  };
 
 #if ZMQ_CAN_MONITOR
   Persistent<String> monitor_symbol;
@@ -317,6 +317,7 @@ namespace zmq {
     NODE_SET_PROTOTYPE_METHOD(t, "recv", Recv);
     NODE_SET_PROTOTYPE_METHOD(t, "send", Send);
     NODE_SET_PROTOTYPE_METHOD(t, "close", Close);
+    NODE_SET_PROTOTYPE_METHOD(t, "onReady", SetOnReadyCallback);
 
 #if ZMQ_CAN_DISCONNECT
     NODE_SET_PROTOTYPE_METHOD(t, "disconnect", Disconnect);
@@ -329,8 +330,6 @@ namespace zmq {
 #endif
 
     target->Set(NanNew("SocketBinding"), t->GetFunction());
-
-    NanAssignPersistent(callback_symbol, NanNew("onReady"));
 
   }
 
@@ -916,20 +915,20 @@ namespace zmq {
       MessageReference* msgref_;
   };
 
+  NAN_METHOD(Socket::SetOnReadyCallback) {
+    NanScope();
+    if (!args[0]->IsFunction()) {
+      return NanThrowTypeError("onReady Callback must be a function!");
+    }
+    GET_SOCKET(args)
+    NanAssignPersistent(socket->on_ready_callback, args[0].As<Function>());
+    NanReturnUndefined();
+  }
 
   void Socket::CallbackIfReady() {
     NanScope();
     while(true){
-      if(state_ != STATE_READY){
-        return;
-      }
       if(!(this->IsReady())){
-        return;
-      }
-
-      //get the callback from the this object
-      Local<Value> callback_v = NanObjectWrapHandle(this)->Get(NanNew(callback_symbol));
-      if (!callback_v->IsFunction()) {
         return;
       }
 
@@ -959,9 +958,8 @@ namespace zmq {
         }
       }
 
-
       Local<Value> argv[] = {message_buffers};
-      NanMakeCallback(NanObjectWrapHandle(this), callback_v.As<Function>(), 1, argv);
+      NanMakeCallback(NanObjectWrapHandle(this), on_ready_callback, 1, argv);
 
     }
   }
