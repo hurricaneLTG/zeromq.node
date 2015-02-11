@@ -38,7 +38,6 @@ describe('socket.messages', function(){
       push.send(new Buffer('buffer'));
     });
   });
-
   it('should support multipart messages', function(done){
     pull.on('message', function(msg1, msg2, msg3){
       msg1.toString().should.equal('string');
@@ -77,8 +76,9 @@ describe('socket.messages', function(){
 
   it('should handle late connect', function(done){
     var n = 0;
-
+    console.log("yo");
     pull.on('message', function(msg){
+      console.log("yo1");
       msg = msg.toString();
       switch (n++) {
         case 0:
@@ -97,17 +97,23 @@ describe('socket.messages', function(){
     });
 
     if (semver.satisfies(zmq.version, '>=3.x')) {
-      push.setsockopt(zmq.ZMQ_SNDHWM, 1);
-      pull.setsockopt(zmq.ZMQ_RCVHWM, 1);
+      push.setsockopt(zmq.ZMQ_SNDHWM, 10);
+      pull.setsockopt(zmq.ZMQ_RCVHWM, 10);
     } else if (semver.satisfies(zmq.version, '2.x')) {
-      push.setsockopt(zmq.ZMQ_HWM, 1);
-      pull.setsockopt(zmq.ZMQ_HWM, 1);
+      push.setsockopt(zmq.ZMQ_HWM, 10);
+      pull.setsockopt(zmq.ZMQ_HWM, 10);
     }
 
+    console.log("yo 3");
     push.bind('tcp://127.0.0.1:12345', function () {
+
+      console.log("yo bound");
       push.send('string');
+      console.log("yo bound");
       push.send(15.99);
+      console.log("yo bound");
       push.send(new Buffer('buffer'));
+      console.log("yo bound");
       pull.connect('tcp://127.0.0.1:12345');
     });
   });

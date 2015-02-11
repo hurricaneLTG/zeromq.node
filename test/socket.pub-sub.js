@@ -14,7 +14,7 @@ describe('socket.pub-sub', function(){
     var n = 0;
 
     sub.subscribe('');
-    sub.on('message', function(msg){
+    sub.on('message', function(msg, msg2){
       msg.should.be.an.instanceof(Buffer);
       switch (n++) {
         case 0:
@@ -50,7 +50,7 @@ describe('socket.pub-sub', function(){
         pub.send('foo');
         pub.send('bar');
         pub.send('baz');
-      }, 100.0);
+      }, 100);
     });
   });
 
