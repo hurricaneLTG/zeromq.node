@@ -658,7 +658,6 @@ namespace zmq {
   };
 
   NAN_METHOD(Socket::Bind) {
-    printf("Binding\n");
     NanScope();
     if (!args[0]->IsString())
       return NanThrowTypeError("Address must be a string!");
@@ -876,15 +875,15 @@ namespace zmq {
 
       inline Local<Value> GetBuffer() {
         if (buf_.IsEmpty()) {
-          printf("buf was empty?\n");
+          //printf("buf was empty?\n");
           Local<Object> buf_obj = NanNewBufferHandle((char*)zmq_msg_data(*msgref_), zmq_msg_size(*msgref_), FreeCallback, msgref_);
-          printf("b1\n");
+          //printf("b1\n");
           if (buf_obj.IsEmpty()) {
             return Local<Value>();
           }
           NanAssignPersistent(buf_, buf_obj);
         }
-        printf("b4\n");
+        //printf("b4\n");
         return NanNew(buf_);
       }
 
@@ -919,29 +918,24 @@ namespace zmq {
 
 
   void Socket::CallbackIfReady() {
-    printf("hai\n");
     NanScope();
     while(true){
       if(state_ != STATE_READY){
-        printf("bai1\n");
         return;
       }
       if(!(this->IsReady())){
-        printf("bai2\n");
         return;
       }
 
       //get the callback from the this object
       Local<Value> callback_v = NanObjectWrapHandle(this)->Get(NanNew(callback_symbol));
       if (!callback_v->IsFunction()) {
-        printf("bai3\n");
         return;
       }
 
       Local<Array> message_buffers = NanNew<Array>(1);
       int messsage_part_count = 0;
       while(true){
-        printf("rar\n");
         int flags = 0;
         IncomingMessage msg;
         #if ZMQ_VERSION_MAJOR == 2
@@ -951,14 +945,10 @@ namespace zmq {
           if (zmq_recvmsg(socket_, msg, flags) < 0)
             NanThrowError(ErrorMessage());
         #endif
-        printf("rar1\n");
-        msg.GetBuffer();
-        printf("rar2\n");
         message_buffers->Set(messsage_part_count,msg.GetBuffer());
         messsage_part_count++;
 
 
-        printf("rar3\n");
         int more_to_receive = 0;
         size_t len = sizeof(int);
         if (zmq_getsockopt(socket_, ZMQ_RCVMORE, &more_to_receive, &len) < 0) {
@@ -974,7 +964,6 @@ namespace zmq {
       NanMakeCallback(NanObjectWrapHandle(this), callback_v.As<Function>(), 1, argv);
 
     }
-    printf("bai\n");
   }
 
 #if ZMQ_CAN_MONITOR
