@@ -1000,9 +1000,12 @@ namespace zmq {
         message_buffers->Set(messsage_part_count,msg.GetBuffer());
         messsage_part_count++;
 
-
+      #if ZMQ_VERSION_MAJOR == 2
+        int64_t more_to_receive = 0;
+      #else
         int more_to_receive = 0;
-        size_t len = sizeof(int);
+      #endif
+        size_t len = sizeof(more_to_receive);
         if (zmq_getsockopt(socket_, ZMQ_RCVMORE, &more_to_receive, &len) < 0) {
           NanThrowError(ExceptionFromError());
           return;
